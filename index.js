@@ -80,7 +80,12 @@ const client = new Client({
   authStrategy: new LocalAuth({ clientId: 'wa-automator' }),
   puppeteer: {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--single-process'
+    ]
   }
 });
 
@@ -102,7 +107,31 @@ client.on('authenticated', () => {
 client.on('ready', async () => {
   state.connected = true;
   state.qrDataUrl = null;
+client.on('message', async (msg) => {
+  try {
+    if (msg.fromMe) return;
 
+    const cfg = loadConfig();
+
+    // Only respond to allowed targets (contacts or groups)
+    const allowed = cfg.targets.some(t => t.wid === msg.from);
+    if (!allowed) return;
+
+    // Optional stop command
+    if (msg.body?.toLowerCase().startsWith('!stop')) return;
+
+    const reply = await generateWithClaude(
+      `Reply to this WhatsApp message naturally: "${msg.body}"`,
+      "friendly"
+    );
+
+    await msg.reply(reply);
+
+    addLog('🤖', `Auto-replied → ${msg.from}`);
+  } catch (err) {
+    addLog('❌', 'Auto-reply error: ' + err.message);
+  }
+});
   try {
     const info = client.info;
     state.phone = info?.wid?.user ? info.wid.user + '@c.us' : 'connected';
@@ -282,11 +311,29 @@ app.get('/api/qr', (req, res) => {
 
 // Targets
 app.post('/api/targets', (req, res) => {
-  const { name, wid } = req.body;
+  const { name, wid, type } = req.body;
   if (!name || !wid) return res.status(400).json({ error: 'missing data' });
 
   const cfg = loadConfig();
 
+  const exists = cfg.targets.find(t => t.wid === wid);
+  if (exists) {
+    return res.status(409).json({ error: 'already exists' });
+  }
+
+  const target = {
+    id: Date.now(),
+    name: name.trim(),
+    type: type || 'person',
+    wid: wid.trim(),
+    enabled: true
+  };
+
+  cfg.targets.push(target);
+  saveConfig(cfg);
+
+  res.json(target);
+});
   // ❌ prevent duplicates
   const exists = cfg.targets.find(t => t.wid === wid);
   if (exists) {
