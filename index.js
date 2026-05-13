@@ -335,21 +335,39 @@ app.post('/api/targets', (req, res) => {
   res.json(target);
 });
   // ❌ prevent duplicates
-  const exists = cfg.targets.find(t => t.wid === wid);
+ app.post('/api/targets', (req, res) => {
+  const { name, wid, type } = req.body;
+
+  if (!name || !wid) {
+    return res.status(400).json({
+      error: 'missing data'
+    });
+  }
+
+  const cfg = loadConfig();
+
+  // Prevent duplicate contacts/groups
+  const exists = cfg.targets.find((t) => t.wid === wid);
+
   if (exists) {
-    return res.status(409).json({ error: 'Contact already exists' });
+    return res.status(409).json({
+      error: 'Contact already exists'
+    });
   }
 
   const target = {
     id: Date.now(),
     name: name.trim(),
-    type: 'person',
+    type: type || 'person',
     wid: wid.trim(),
     enabled: true
   };
 
   cfg.targets.push(target);
+
   saveConfig(cfg);
+
+  addLog('➕', `Added target: ${target.name}`);
 
   res.json(target);
 });
