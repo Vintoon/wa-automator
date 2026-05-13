@@ -1,0 +1,18 @@
+{
+  "message": "Hello {{name}} 👋 Are you passionate about writing and using it for God's glory? Look no further. With this website we've got you covered.\n\nTo get a headstart, click the link below, create an account and begin your journey of sharing your faith in this digital age.\n\nhttps://dekusdaschool.vercel.app/\n\n#DigitalEvangelism",
+  "targets": [
+    {
+      "id": 1,
+      "name": "Victor",
+      "type": "person",
+      "wid": "254723867283@c.us",
+      "enabled": true
+    }
+  ],
+  "schedule": {
+    "enabled": false,
+    "cron": "0 9 * * 1",
+    "delaySeconds": 5
+  },
+  "anthropicApiKey": ""
+}
